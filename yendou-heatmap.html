@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200">
+<title>Yendou — Activity Heatmap</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1200px;
+    min-height: 1200px;
+    overflow-x: hidden;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #FFFDF2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 0;
+  }
+
+  .card {
+    background: #ffffff;
+    border-radius: 32px;
+    padding: 64px 72px 56px;
+    width: 1120px;
+    min-height: 1040px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 60px rgba(65, 67, 85, 0.08);
+  }
+
+  .header {
+    margin-bottom: 40px;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .header-text { flex: 1; }
+
+  .eyebrow {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #9C9C9C;
+    margin-bottom: 10px;
+  }
+
+  .title {
+    font-size: 32px;
+    font-weight: 800;
+    color: #414355;
+    line-height: 1.2;
+  }
+
+  .title .highlight { color: #4F9CCB; }
+
+  .subtitle {
+    font-size: 17px;
+    font-weight: 400;
+    color: #9C9C9C;
+    margin-top: 8px;
+  }
+
+  /* Timezone picker */
+  .tz-picker {
+    position: relative;
+    margin-top: 4px;
+  }
+
+  .tz-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #F4F4F5;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 18px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #414355;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .tz-btn:hover { background: #ECECED; }
+
+  .tz-btn svg {
+    width: 16px;
+    height: 16px;
+    color: #9C9C9C;
+    transition: transform 0.2s;
+  }
+
+  .tz-btn.open svg { transform: rotate(180deg); }
+
+  .tz-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(65, 67, 85, 0.15);
+    padding: 6px;
+    z-index: 100;
+    min-width: 260px;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .tz-dropdown.show { display: block; }
+
+  .tz-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #414355;
+    transition: background 0.15s;
+  }
+
+  .tz-option:hover { background: #F4F4F5; }
+  .tz-option.active { background: rgba(79, 156, 203, 0.1); color: #4F9CCB; }
+
+  .tz-offset {
+    font-size: 12px;
+    font-weight: 400;
+    color: #9C9C9C;
+  }
+
+  /* Heatmap */
+  .heatmap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: 56px repeat(24, 1fr);
+    grid-template-rows: 32px repeat(7, 1fr);
+    gap: 3px;
+    flex: 1;
+    min-height: 560px;
+  }
+
+  .hour-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: #9C9C9C;
+  }
+
+  .day-label {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #414355;
+  }
+
+  .cell {
+    border-radius: 4px;
+    transition: background-color 0.3s ease, transform 0.15s ease;
+  }
+
+  .cell:hover {
+    transform: scale(1.15);
+    box-shadow: 0 2px 8px rgba(65, 67, 85, 0.15);
+  }
+
+  .corner {}
+
+  .legend-area {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1.5px solid #F4F4F5;
+  }
+
+  .legend-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #9C9C9C;
+  }
+
+  .legend-bar {
+    display: flex;
+    gap: 2px;
+  }
+
+  .legend-swatch {
+    width: 24px;
+    height: 14px;
+    border-radius: 3px;
+  }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+  }
+
+  .footer-left, .footer-right {
+    font-size: 15px;
+    color: #9C9C9C;
+    font-weight: 400;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="header-top">
+      <div class="header-text">
+        <div class="eyebrow">Platform Activity</div>
+        <div class="title">When Research Sites Are <span class="highlight">Most Active</span></div>
+        <div class="subtitle" id="subtitleText">Activity heatmap · Europe / Berlin (UTC+1:00)</div>
+      </div>
+      <div class="tz-picker">
+        <button class="tz-btn" id="tzBtn">
+          <span id="tzBtnLabel">Europe / Berlin</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="tz-dropdown" id="tzDropdown"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="heatmap">
+    <div class="heatmap-grid" id="grid"></div>
+    <div class="legend-area">
+      <span class="legend-label">Less</span>
+      <div class="legend-bar" id="legendBar"></div>
+      <span class="legend-label">More</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-left">Source: Yendou Analytics · March 2026</div>
+    <div class="footer-right">Yendou</div>
+  </div>
+</div>
+
+<script>
+const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+// Original data in Europe/Berlin (UTC+1)
+const baseOffset = 1;
+const baseData = [
+  [0,0,0,0,1,0,1,1,4,11,13,7,13,10,13,16,26,28,18,11,15,8,10,10],
+  [3,0,0,0,4,0,0,0,9,9,15,14,14,23,15,18,19,24,24,14,9,9,4,1],
+  [1,0,1,1,0,0,1,1,5,11,13,8,12,8,20,19,22,18,19,12,7,11,6,5],
+  [1,2,0,1,2,3,0,2,3,8,6,13,17,10,15,19,25,16,13,3,6,3,2,5],
+  [1,0,1,0,0,1,1,1,5,9,10,9,9,13,7,16,16,16,15,15,10,10,8,1],
+  [1,0,0,0,0,0,0,0,2,0,0,3,1,2,2,7,3,0,1,1,1,3,0,0],
+  [0,0,0,0,0,1,2,0,0,2,8,5,2,2,1,3,3,2,0,7,3,0,0,0],
+];
+
+const timezones = [
+  { label: 'US / Pacific', offset: -8, code: 'UTC-8:00' },
+  { label: 'US / Mountain', offset: -7, code: 'UTC-7:00' },
+  { label: 'US / Central', offset: -6, code: 'UTC-6:00' },
+  { label: 'US / Eastern', offset: -5, code: 'UTC-5:00' },
+  { label: 'Brazil / São Paulo', offset: -3, code: 'UTC-3:00' },
+  { label: 'UK / London', offset: 0, code: 'UTC+0:00' },
+  { label: 'Europe / Berlin', offset: 1, code: 'UTC+1:00' },
+  { label: 'Europe / Moscow', offset: 3, code: 'UTC+3:00' },
+  { label: 'India / Mumbai', offset: 5.5, code: 'UTC+5:30' },
+  { label: 'Asia / Singapore', offset: 8, code: 'UTC+8:00' },
+  { label: 'Asia / Tokyo', offset: 9, code: 'UTC+9:00' },
+  { label: 'Australia / Sydney', offset: 11, code: 'UTC+11:00' },
+];
+
+let currentTz = timezones.find(t => t.label === 'Europe / Berlin');
+
+function getColor(value, max) {
+  if (value === 0) return '#F4F4F5';
+  const ratio = value / max;
+  if (ratio < 0.1) return 'rgba(79, 156, 203, 0.12)';
+  if (ratio < 0.2) return 'rgba(79, 156, 203, 0.22)';
+  if (ratio < 0.3) return 'rgba(79, 156, 203, 0.32)';
+  if (ratio < 0.4) return 'rgba(79, 156, 203, 0.44)';
+  if (ratio < 0.55) return 'rgba(79, 156, 203, 0.58)';
+  if (ratio < 0.7) return 'rgba(79, 156, 203, 0.72)';
+  if (ratio < 0.85) return 'rgba(65, 67, 85, 0.65)';
+  return 'rgba(65, 67, 85, 0.88)';
+}
+
+function shiftData(targetOffset) {
+  const shift = targetOffset - baseOffset;
+  const shifted = [];
+  for (let d = 0; d < 7; d++) {
+    const row = new Array(24).fill(0);
+    for (let h = 0; h < 24; h++) {
+      let newH = h + shift;
+      let newD = d;
+      if (newH >= 24) { newH -= 24; newD = (newD + 1) % 7; }
+      if (newH < 0) { newH += 24; newD = (newD - 1 + 7) % 7; }
+      // For half-hour offsets, round to nearest hour
+      const roundedH = Math.round(newH) % 24;
+      const finalD = Math.round(newH) >= 24 ? (newD + 1) % 7 : (Math.round(newH) < 0 ? (newD - 1 + 7) % 7 : newD);
+      shifted[finalD] = shifted[finalD] || new Array(24).fill(0);
+      shifted[finalD][roundedH] += baseData[d][h];
+    }
+  }
+  // Fill any missing rows
+  for (let d = 0; d < 7; d++) { if (!shifted[d]) shifted[d] = new Array(24).fill(0); }
+  return shifted;
+}
+
+const maxVal = Math.max(...baseData.flat());
+
+function renderGrid(data) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  // Corner
+  const corner = document.createElement('div');
+  corner.className = 'corner';
+  grid.appendChild(corner);
+
+  // Hour labels
+  for (let h = 0; h < 24; h++) {
+    const el = document.createElement('div');
+    el.className = 'hour-label';
+    el.textContent = h;
+    grid.appendChild(el);
+  }
+
+  // Rows
+  for (let d = 0; d < 7; d++) {
+    const dayEl = document.createElement('div');
+    dayEl.className = 'day-label';
+    dayEl.textContent = days[d];
+    grid.appendChild(dayEl);
+
+    for (let h = 0; h < 24; h++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.style.backgroundColor = getColor(data[d][h], maxVal);
+      cell.title = days[d] + ' ' + h + ':00';
+      grid.appendChild(cell);
+    }
+  }
+}
+
+// Timezone dropdown
+const tzBtn = document.getElementById('tzBtn');
+const tzDropdown = document.getElementById('tzDropdown');
+const tzBtnLabel = document.getElementById('tzBtnLabel');
+const subtitleText = document.getElementById('subtitleText');
+
+timezones.forEach(tz => {
+  const opt = document.createElement('div');
+  opt.className = 'tz-option' + (tz.label === currentTz.label ? ' active' : '');
+  opt.innerHTML = '<span>' + tz.label + '</span><span class="tz-offset">' + tz.code + '</span>';
+  opt.addEventListener('click', () => {
+    currentTz = tz;
+    tzBtnLabel.textContent = tz.label;
+    subtitleText.textContent = 'Activity heatmap · ' + tz.label + ' (' + tz.code + ')';
+    tzDropdown.classList.remove('show');
+    tzBtn.classList.remove('open');
+    // Update active state
+    tzDropdown.querySelectorAll('.tz-option').forEach(el => el.classList.remove('active'));
+    opt.classList.add('active');
+    // Re-render
+    const shifted = shiftData(tz.offset);
+    renderGrid(shifted);
+  });
+  tzDropdown.appendChild(opt);
+});
+
+tzBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  tzDropdown.classList.toggle('show');
+  tzBtn.classList.toggle('open');
+});
+
+document.addEventListener('click', () => {
+  tzDropdown.classList.remove('show');
+  tzBtn.classList.remove('open');
+});
+
+// Legend
+const legendBar = document.getElementById('legendBar');
+[0, 0.1, 0.2, 0.3, 0.4, 0.55, 0.7, 0.85, 1.0].forEach(ratio => {
+  const swatch = document.createElement('div');
+  swatch.className = 'legend-swatch';
+  swatch.style.backgroundColor = getColor(ratio * maxVal, maxVal);
+  legendBar.appendChild(swatch);
+});
+
+// Initial render
+renderGrid(baseData);
+</script>
+</body>
+</html>
